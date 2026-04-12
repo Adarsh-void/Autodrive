@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+         request.auth.token.email == "adars8110@gmail.com");
+    }
+    
+    function isValidUser(data) {
+      return data.keys().hasOnly(['uid', 'name', 'email', 'phone', 'role', 'status', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.role in ['admin', 'user'] &&
+             data.status in ['active', 'blocked'];
+    }
+
+    function isValidVehicle(data) {
+      let requiredFields = ['ownerId', 'name', 'year', 'fuelType', 'totalKm', 'avgDailyKm', 'serviceIntervalKm', 'serviceIntervalMonths', 'documents'];
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(['ownerId', 'name', 'year', 'fuelType', 'totalKm', 'avgDailyKm', 'serviceIntervalKm', 'serviceIntervalMonths', 'lastServiceDate', 'nextServiceDate', 'urgency', 'documents']) &&
+             data.ownerId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.year is int && data.year > 1900 &&
+             data.fuelType in ['Petrol', 'Diesel', 'Electric', 'Hybrid'] &&
+             data.totalKm is int &&
+             data.avgDailyKm is int &&
+             data.serviceIntervalKm is int &&
+             data.serviceIntervalMonths is int &&
+             (data.urgency == null || data.urgency in ['Low', 'Medium', 'High']) &&
+             data.documents is list;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(userId) && request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidVehicle(request.resource.data) && 
+                    (request.resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && isValidVehicle(request.resource.data) && 
+                    (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /inventory/{partId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && ((resource.data.userId == request.auth.uid && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])) || isAdmin());
+      allow create: if isAuthenticated() && (isAdmin() || request.resource.data.userId == 'admin');
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user information and roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name" },
+        "email": { "type": "string", "description": "User email" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User role" },
+        "status": { "type": "string", "enum": ["active", "blocked"], "description": "Account status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Stores vehicle details for a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique vehicle ID" },
+        "ownerId": { "type": "string", "description": "UID of the owner" },
+        "name": { "type": "string", "description": "Vehicle name/model" },
+        "year": { "type": "integer", "description": "Year of purchase" },
+        "fuelType": { "type": "string", "enum": ["Petrol", "Diesel", "Electric", "Hybrid"], "description": "Fuel type" },
+        "totalKm": { "type": "integer", "description": "Total kilometers driven" },
+        "avgDailyKm": { "type": "integer", "description": "Average daily usage in km" },
+        "serviceIntervalKm": { "type": "integer", "description": "Service interval in km" },
+        "serviceIntervalMonths": { "type": "integer", "description": "Service interval in months" },
+        "lastServiceDate": { "type": "string", "format": "date", "description": "Last service date" },
+        "nextServiceDate": { "type": "string", "format": "date", "description": "Predicted next service date" },
+        "urgency": { "type": "string", "enum": ["Low", "Medium", "High"], "description": "Service urgency level" },
+        "documents": { "type": "array", "items": { "type": "string" }, "description": "URLs to insurance/RC" }
+      },
+      "required": ["ownerId", "name", "year", "fuelType", "totalKm", "avgDailyKm", "serviceIntervalKm", "serviceIntervalMonths"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Service appointment requests.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique appointment ID" },
+        "userId": { "type": "string", "description": "UID of the user" },
+        "vehicleId": { "type": "string", "description": "ID of the vehicle" },
+        "serviceType": { "type": "string", "description": "Type of service requested" },
+        "date": { "type": "string", "format": "date-time", "description": "Requested date" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"], "description": "Appointment status" },
+        "notes": { "type": "string", "description": "User notes" }
+      },
+      "required": ["userId", "vehicleId", "serviceType", "date", "status"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Active service jobs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique job ID" },
+        "appointmentId": { "type": "string", "description": "Linked appointment ID" },
+        "vehicleId": { "type": "string", "description": "ID of the vehicle" },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "completed"], "description": "Job status" },
+        "tasks": { "type": "array", "items": { "type": "string" }, "description": "List of tasks performed" },
+        "cost": { "type": "number", "description": "Total cost" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update" }
+      },
+      "required": ["vehicleId", "status"]
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "description": "Spare parts stock management.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique part ID" },
+        "partName": { "type": "string", "description": "Name of the part" },
+        "stock": { "type": "integer", "description": "Current stock level" },
+        "minStockAlert": { "type": "integer", "description": "Threshold for low stock alert" },
+        "price": { "type": "number", "description": "Unit price" }
+      },
+      "required": ["partName", "stock", "minStockAlert", "price"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notifications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique notification ID" },
+        "userId": { "type": "string", "description": "Target user UID" },
+        "message": { "type": "string", "description": "Notification message" },
+        "read": { "type": "boolean", "description": "Read status" },
+        "type": { "type": "string", "description": "Type of notification" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["userId", "message", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile documents."
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": "Vehicle",
+      "description": "Vehicle documents."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Service appointment requests."
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Active service jobs."
+    },
+    "/inventory/{partId}": {
+      "schema": "Inventory",
+      "description": "Inventory management."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications."
+    }
+  }
+}
